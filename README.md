@@ -10,6 +10,12 @@ npm test           # unit tests (units, geometry, suggestions, storage, undo)
 npm run build      # typecheck + production build in dist/
 ```
 
+## Deployment
+
+Pushes to `main` build and publish the app to GitHub Pages (`.github/workflows/deploy.yml`). One-time setup: in the
+repository's **Settings → Pages**, set **Source** to **GitHub Actions**. The build uses relative asset paths, so it
+works from the `/<repo>/` subpath.
+
 ## Features
 
 - **Art, mat and frame sizes.** Enter the art size, the mat (left/right and top/bottom separately) and the frame
