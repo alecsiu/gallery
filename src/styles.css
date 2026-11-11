@@ -115,7 +115,10 @@ h3 { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacin
 .stage.dock-none { grid-template-rows: minmax(0, 1fr); }
 .canvas { position: relative; display: grid; grid-template-rows: minmax(0, 1fr) auto; min-height: 0; min-width: 0; }
 .canvas-scroll { overflow: auto; display: grid; padding: 12px; place-items: start center; min-height: 0; }
+.canvas-scroll { touch-action: none; overscroll-behavior: contain; }
+.canvas-scroll.panning, .canvas-scroll.panning * { cursor: grabbing !important; }
 .canvas-box { flex: none; }
+.zoom-pct { min-width: 34px; text-align: right; font-variant-numeric: tabular-nums; }
 .zoom {
   position: absolute; right: 16px; top: 14px; display: flex; align-items: center; gap: 8px;
   background: rgba(253, 252, 249, 0.94); backdrop-filter: blur(6px); border: 1px solid var(--line);

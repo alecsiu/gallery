@@ -29,6 +29,8 @@ works from the `/<repo>/` subpath.
 - **Drag and drop** on a to-scale wall. Snaps to other frames' edges and centers, the wall's center lines, and a
   preferred gap; hold **Alt** to move freely. Arrow keys nudge the selected frame (Shift for bigger steps).
   Frames that overlap or leave the wall are outlined in red.
+- **Pan and zoom.** Drag empty space to pan; pinch (touch or trackpad) or Ctrl/Cmd + scroll to zoom about the
+  fingers or cursor. Tapping a frame selects it; tapping empty space clears the selection.
 - **Dimension lines** between each frame and its nearest neighbors (live while dragging), plus distances to the wall
   edges for the selected frame.
 - **Wall constraints.** Drag the wall's edge handles or type its size. An optional furniture guide (sofa, console)
