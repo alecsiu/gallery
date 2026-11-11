@@ -19,7 +19,11 @@ works from the `/<repo>/` subpath.
 ## Features
 
 - **Art, mat and frame sizes.** Enter the art size, the mat (left/right and top/bottom separately) and the frame
-  moulding width. The inner (opening) and outer sizes are calculated and shown read-only.
+  moulding width. The inner (opening) and outer sizes are calculated and shown read-only. Or switch a piece to
+  **Outer size** and just enter its overall width and height (canvases, mirrors, anything already framed).
+- **Add from a photo.** Take or pick a photo of a piece, drag four corners onto its outer edges, and type one real
+  measurement; the other follows the outline's proportions. The piece is straightened and drawn on the wall as it
+  really looks. Everything happens in the browser.
 - **Units.** Inches or cm, switchable at any time. Inputs accept `11.5`, `11 3/4`, `8' 4"`, `5 cm`, `50mm`. Everything is
   stored in inches.
 - **Drag and drop** on a to-scale wall. Snaps to other frames' edges and centers, the wall's center lines, and a
@@ -32,7 +36,8 @@ works from the `/<repo>/` subpath.
 - **Suggested layouts.** Classic patterns (centered row, symmetric, grid, rows, staircase, salon cluster) are generated
   for your pieces, filtered to those that fit, scored for even gaps, balance, width and alignment, and shown as
   thumbnails. Click one to apply it (undoable); Shuffle for new variations. Without furniture, art is centered 57" above
-  the floor; with furniture it hangs 8" above it, centered on it.
+  the floor; with furniture it hangs 8" above it, centered on it. The panel can be hidden from the toolbar and
+  anchored to the bottom or the right of the wall; the choice is remembered.
 - **Saved layouts.** Multiple named layouts persist in the browser's local storage and survive reloads. Save to / load
   from a `.gallery.json` file.
 - **Undo/redo** (Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z), piece images, **PNG export**, and **Print** (wall plan plus a hanging

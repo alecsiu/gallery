@@ -2,14 +2,40 @@ import type { Piece, Rect } from './types';
 
 export const EPS = 1e-6;
 
-type FrameParts = Pick<Piece, 'artW' | 'artH' | 'matX' | 'matY' | 'frame'>;
+type FrameParts = Pick<Piece, 'artW' | 'artH' | 'matX' | 'matY' | 'frame' | 'sizing' | 'outerW' | 'outerH'>;
 
-/** Opening of the frame (art plus mat). */
+/** True when the piece is described by its overall size only. */
+export const isOuterSized = (p: FrameParts): p is FrameParts & { outerW: number; outerH: number } =>
+  p.sizing === 'outer' && p.outerW !== undefined && p.outerH !== undefined;
+
+/** Opening of the frame (art plus mat). Only meaningful for pieces with an art + mat + frame spec. */
 export const innerW = (p: FrameParts) => p.artW + 2 * p.matX;
 export const innerH = (p: FrameParts) => p.artH + 2 * p.matY;
 /** Outside dimensions of the frame. */
-export const outerW = (p: FrameParts) => innerW(p) + 2 * p.frame;
-export const outerH = (p: FrameParts) => innerH(p) + 2 * p.frame;
+export const outerW = (p: FrameParts) => (isOuterSized(p) ? p.outerW : innerW(p) + 2 * p.frame);
+export const outerH = (p: FrameParts) => (isOuterSized(p) ? p.outerH : innerH(p) + 2 * p.frame);
+
+/** The parts to draw. Outer-sized pieces get a thin stand-in frame, since their real moulding is unknown. */
+export function drawnParts(p: FrameParts): { frame: number; matX: number; matY: number; artW: number; artH: number } {
+  if (!isOuterSized(p)) return { frame: p.frame, matX: p.matX, matY: p.matY, artW: p.artW, artH: p.artH };
+  const frame = Math.min(0.75, 0.06 * Math.min(p.outerW, p.outerH));
+  return { frame, matX: 0, matY: 0, artW: p.outerW - 2 * frame, artH: p.outerH - 2 * frame };
+}
+
+const MIN_ART = 0.1;
+
+/** Switches how a piece's size is described without changing its overall size. */
+export function withSizing<T extends FrameParts>(p: T, sizing: 'spec' | 'outer'): T {
+  const w = outerW(p);
+  const h = outerH(p);
+  if (sizing === 'outer') return { ...p, sizing: 'outer', outerW: w, outerH: h };
+  const { sizing: _s, outerW: _w, outerH: _h, ...rest } = p;
+  const border = 2 * (p.matX + p.frame);
+  const borderY = 2 * (p.matY + p.frame);
+  // Keep the remembered mat and frame when they fit inside the overall size; otherwise start from bare art.
+  if (w - border >= MIN_ART && h - borderY >= MIN_ART) return { ...rest, artW: w - border, artH: h - borderY } as T;
+  return { ...rest, artW: w, artH: h, matX: 0, matY: 0, frame: 0 } as T;
+}
 
 export const pieceRect = (p: Piece): Rect => ({ x: p.x, y: p.y, w: outerW(p), h: outerH(p) });
 export const rectRight = (r: Rect) => r.x + r.w;

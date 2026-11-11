@@ -7,10 +7,11 @@ import { Toolbar } from './components/Toolbar';
 import { exportJson, exportPng } from './export';
 import { outerH, outerW } from './geometry';
 import { currentLayout, initState, reducer } from './store';
-import { loadUnit, parseLayoutFile, saveState, saveUnit } from './storage';
+import { DEFAULT_PREFS, loadPrefs, parseLayoutFile, savePrefs, saveState } from './storage';
+import type { Prefs } from './storage';
 import { generateSuggestions } from './suggest';
 import type { Suggestion } from './suggest';
-import type { Unit } from './types';
+import type { Dock, Unit } from './types';
 
 const SAVE_DELAY_MS = 250;
 
@@ -24,10 +25,14 @@ function readStorage(): Storage | undefined {
 
 export default function App() {
   const [state, dispatch] = useReducer(reducer, undefined, () => initState(readStorage()));
-  const [unit, setUnit] = useState<Unit>(() => {
+  const [prefs, setPrefs] = useState<Prefs>(() => {
     const store = readStorage();
-    return store ? loadUnit(store) : 'in';
+    return store ? loadPrefs(store) : DEFAULT_PREFS;
   });
+  const { unit, showSuggestions, dock } = prefs;
+  const setUnit = (u: Unit) => setPrefs((p) => ({ ...p, unit: u }));
+  const setShowSuggestions = (v: boolean) => setPrefs((p) => ({ ...p, showSuggestions: v }));
+  const setDock = (d: Dock) => setPrefs((p) => ({ ...p, dock: d }));
   const [showDims, setShowDims] = useState(true);
   const [salt, setSalt] = useState(0);
   const [notice, setNotice] = useState<{ kind: 'error' | 'info'; text: string } | null>(null);
@@ -53,8 +58,8 @@ export default function App() {
   }, [flush]);
   useEffect(() => {
     const store = readStorage();
-    if (store) saveUnit(store, unit);
-  }, [unit]);
+    if (store) savePrefs(store, prefs);
+  }, [prefs]);
 
   useEffect(() => {
     if (!notice) return;
@@ -73,16 +78,19 @@ export default function App() {
     layout.furniture.enabled ? layout.furniture : null,
     layout.gap,
     salt,
+    showSuggestions,
   ]);
   const suggestions = useMemo(
     () =>
-      generateSuggestions(
-        layout.pieces.map((p) => ({ id: p.id, w: outerW(p), h: outerH(p) })),
-        layout.wall,
-        layout.furniture,
-        layout.gap,
-        salt,
-      ),
+      !showSuggestions
+        ? []
+        : generateSuggestions(
+            layout.pieces.map((p) => ({ id: p.id, w: outerW(p), h: outerH(p) })),
+            layout.wall,
+            layout.furniture,
+            layout.gap,
+            salt,
+          ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [sizeKey],
   );
@@ -113,7 +121,7 @@ export default function App() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
-      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable)) return;
+      if (target && (target.closest('dialog') || target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable)) return;
       const mod = e.ctrlKey || e.metaKey;
       if (mod && e.key.toLowerCase() === 'z') {
         e.preventDefault();
@@ -161,6 +169,8 @@ export default function App() {
         dispatch={dispatch}
         onUnit={setUnit}
         onShowDims={setShowDims}
+        showSuggestions={showSuggestions}
+        onShowSuggestions={setShowSuggestions}
         onExportJson={() => exportJson(layout)}
         onImportFile={importFile}
         onExportPng={() => exportPng(layout, unit).catch((err) => notify(err instanceof Error ? err.message : 'Export failed'))}
@@ -173,9 +183,20 @@ export default function App() {
       )}
       <main className="main">
         <Sidebar layout={layout} unit={unit} selectedId={state.selectedId} dispatch={dispatch} notify={notify} />
-        <div className="stage">
+        <div className={`stage dock-${showSuggestions ? dock : 'none'}`}>
           <Canvas layout={layout} unit={unit} selectedId={state.selectedId} showDims={showDims} dispatch={dispatch} />
-          <Suggestions layout={layout} unit={unit} suggestions={suggestions} onApply={applySuggestion} onShuffle={() => setSalt((n) => n + 1)} />
+          {showSuggestions && (
+            <Suggestions
+              layout={layout}
+              unit={unit}
+              suggestions={suggestions}
+              dock={dock}
+              onDock={setDock}
+              onClose={() => setShowSuggestions(false)}
+              onApply={applySuggestion}
+              onShuffle={() => setSalt((n) => n + 1)}
+            />
+          )}
         </div>
       </main>
       <PrintSheet layout={layout} unit={unit} />

@@ -1,5 +1,8 @@
 export type Unit = 'in' | 'cm';
 
+/** Where the suggested layouts panel sits. */
+export type Dock = 'bottom' | 'right';
+
 /** All lengths are stored in inches. Positions are the top-left of the outer frame, measured from the wall's top-left. */
 export interface Piece {
   id: string;
@@ -12,8 +15,17 @@ export interface Piece {
   matY: number;
   /** Frame moulding width (all four sides). */
   frame: number;
+  /**
+   * How the size is described. Unset: art + mat + frame. 'outer': just the overall width and height
+   * (`outerW`/`outerH`); the art/mat/frame numbers are kept so switching back restores them.
+   */
+  sizing?: 'outer';
+  outerW?: number;
+  outerH?: number;
   /** Optional thumbnail as a data URL. */
   image?: string;
+  /** The image is a straightened photo of the whole piece, frame included, so it is drawn edge to edge. */
+  photoFull?: true;
   x: number;
   y: number;
 }

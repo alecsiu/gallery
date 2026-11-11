@@ -12,13 +12,15 @@ interface Props {
   dispatch: Dispatch<Action>;
   onUnit: (u: Unit) => void;
   onShowDims: (v: boolean) => void;
+  showSuggestions: boolean;
+  onShowSuggestions: (v: boolean) => void;
   onExportJson: () => void;
   onImportFile: (file: File) => void;
   onExportPng: () => void;
   onPrint: () => void;
 }
 
-export function Toolbar({ state, layout, unit, showDims, dispatch, onUnit, onShowDims, onExportJson, onImportFile, onExportPng, onPrint }: Props) {
+export function Toolbar({ state, layout, unit, showDims, dispatch, onUnit, onShowDims, showSuggestions, onShowSuggestions, onExportJson, onImportFile, onExportPng, onPrint }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const uniqueName = (base: string) => {
@@ -31,7 +33,14 @@ export function Toolbar({ state, layout, unit, showDims, dispatch, onUnit, onSho
 
   return (
     <header className="toolbar">
-      <h1>Gallery Wall Planner</h1>
+      <h1>
+        <svg className="logo" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+          <rect x="2" y="3" width="11" height="14" rx="1" fill="none" stroke="currentColor" strokeWidth="2" />
+          <rect x="16" y="3" width="6" height="6" rx="1" fill="currentColor" />
+          <rect x="16" y="12" width="6" height="9" rx="1" fill="none" stroke="currentColor" strokeWidth="2" />
+        </svg>
+        Gallery Wall Planner
+      </h1>
 
       <div className="group">
         <label htmlFor="layout-select" className="sr-only">
@@ -104,12 +113,16 @@ export function Toolbar({ state, layout, unit, showDims, dispatch, onUnit, onSho
           ))}
         </div>
         <label className="check inline">
-          <input type="checkbox" checked={showDims} onChange={(e) => onShowDims(e.target.checked)} />
+          <input type="checkbox" role="switch" checked={showDims} onChange={(e) => onShowDims(e.target.checked)} />
           Dimensions
+        </label>
+        <label className="check inline" title="Show or hide the suggested layouts panel">
+          <input type="checkbox" role="switch" checked={showSuggestions} onChange={(e) => onShowSuggestions(e.target.checked)} />
+          Suggested layouts
         </label>
       </div>
 
-      <div className="group">
+      <div className="group end">
         <button type="button" onClick={onExportJson} title="Download this layout as a JSON file">
           Save to file
         </button>

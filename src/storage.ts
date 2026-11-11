@@ -1,5 +1,5 @@
 import { defaultFurniture, uid } from './model';
-import type { Furniture, Layout, Piece, Unit } from './types';
+import type { Dock, Furniture, Layout, Piece, Unit } from './types';
 
 const LAYOUTS_KEY = 'gallery-wall.layouts.v1';
 const PREFS_KEY = 'gallery-wall.prefs.v1';
@@ -40,8 +40,14 @@ function sanitizePiece(raw: unknown, i: number, seen: Set<string>): Piece {
     x: num(raw.x, `pieces[${i}].x`, -MAX_LENGTH),
     y: num(raw.y, `pieces[${i}].y`, -MAX_LENGTH),
   };
+  if (raw.sizing === 'outer') {
+    piece.sizing = 'outer';
+    piece.outerW = Math.max(f('outerW'), 0.01);
+    piece.outerH = Math.max(f('outerH'), 0.01);
+  }
   if (typeof raw.image === 'string' && raw.image.startsWith('data:image/') && raw.image.length <= MAX_IMAGE_CHARS) {
     piece.image = raw.image;
+    if (raw.photoFull === true) piece.photoFull = true;
   }
   return piece;
 }
@@ -137,19 +143,33 @@ export function saveState(storage: Store, state: StoredState): string | null {
   }
 }
 
-export function loadUnit(storage: Pick<Storage, 'getItem'>): Unit {
+export interface Prefs {
+  unit: Unit;
+  /** Whether the suggested layouts panel is open, and which edge it is anchored to. */
+  showSuggestions: boolean;
+  dock: Dock;
+}
+
+export const DEFAULT_PREFS: Prefs = { unit: 'in', showSuggestions: true, dock: 'bottom' };
+
+export function loadPrefs(storage: Pick<Storage, 'getItem'>): Prefs {
   try {
-    const data = JSON.parse(storage.getItem(PREFS_KEY) ?? '{}');
-    return data.unit === 'cm' ? 'cm' : 'in';
+    const data: unknown = JSON.parse(storage.getItem(PREFS_KEY) ?? '{}');
+    if (!isObject(data)) return DEFAULT_PREFS;
+    return {
+      unit: data.unit === 'cm' ? 'cm' : 'in',
+      showSuggestions: data.showSuggestions !== false,
+      dock: data.dock === 'right' ? 'right' : 'bottom',
+    };
   } catch {
-    return 'in';
+    return DEFAULT_PREFS;
   }
 }
 
-export function saveUnit(storage: Store, unit: Unit): void {
+export function savePrefs(storage: Store, prefs: Prefs): void {
   try {
-    storage.setItem(PREFS_KEY, JSON.stringify({ unit }));
+    storage.setItem(PREFS_KEY, JSON.stringify(prefs));
   } catch {
-    // Preference only; ignore.
+    // Preferences only; ignore.
   }
 }

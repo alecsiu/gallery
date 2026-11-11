@@ -15,9 +15,11 @@ export function createLayout(name = 'Untitled wall'): Layout {
   return { id: uid(), name, wall, furniture: defaultFurniture(wall), gap: 2, pieces: [], updatedAt: Date.now() };
 }
 
-export function createPiece(index: number, wall: { w: number; h: number }): Piece {
+/** `sizing` follows the piece the user last worked with, so adding several plain-sized pieces stays quick. */
+export function createPiece(index: number, wall: { w: number; h: number }, sizing: 'spec' | 'outer' = 'spec'): Piece {
   const stagger = (index % 6) * 3;
   return {
+    ...(sizing === 'outer' ? { sizing: 'outer' as const, outerW: 14, outerH: 16 } : {}),
     id: uid(),
     name: `Art ${index + 1}`,
     artW: 8,

@@ -1,5 +1,6 @@
+import { useId } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
-import { invalidPieceIds, innerH, innerW, neighborGaps, outerH, outerW, pieceRect, wallGaps } from '../geometry';
+import { drawnParts, invalidPieceIds, neighborGaps, outerH, outerW, pieceRect, wallGaps } from '../geometry';
 import type { GapLine, Guide } from '../geometry';
 import { formatLabel } from '../units';
 import type { Layout, Piece, Unit } from '../types';
@@ -30,15 +31,15 @@ interface Props {
 }
 
 export const COLORS = {
-  surround: '#e7e3da',
-  wall: '#faf8f3',
-  wallStroke: '#8a8478',
-  grid: '#ebe6da',
-  frame: '#3d362e',
+  surround: '#ebe7de',
+  wall: '#fcfbf7',
+  wallStroke: '#a39c8d',
+  grid: '#f0ece2',
+  frame: '#2e2924',
   mat: '#ffffff',
-  art: '#d9d3c5',
+  art: '#d8d0bf',
   artStroke: '#a79f8d',
-  selected: '#2f6fed',
+  selected: '#2f5fe0',
   invalid: '#d92d4b',
   dim: '#0b7285',
   dimWall: '#7b7568',
@@ -108,6 +109,9 @@ export function WallSvg({
   const m = worldMargin(wall);
   const bad = invalidPieceIds(pieces, wall);
   const cursor = (c: string) => (interactive ? c : undefined);
+  // Unique per instance: the hidden print sheet renders a second copy, and ids must not collide with it.
+  const shadowId = `shadow-${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
+  const shadow = compact ? undefined : `url(#${shadowId})`;
 
   const gridStep = unit === 'in' ? 12 : 10 / 2.54;
   const gridLines: JSX.Element[] = [];
@@ -146,8 +150,16 @@ export function WallSvg({
       style={{ display: 'block', touchAction: 'none', userSelect: 'none' }}
       onPointerDown={interactive ? handlers.onBackground : undefined}
     >
+      {!compact && (
+        <defs>
+          <filter id={shadowId} x="-20%" y="-20%" width="140%" height="150%">
+            <feDropShadow dx={0} dy={2 / s} stdDeviation={3 / s} floodColor="#3a2f1c" floodOpacity={0.28} />
+          </filter>
+        </defs>
+      )}
       <rect x={-m} y={-m} width={wall.w + 2 * m} height={wall.h + 2 * m} fill={COLORS.surround} />
-      <rect x={0} y={0} width={wall.w} height={wall.h} fill={COLORS.wall} stroke={COLORS.wallStroke} strokeWidth={(compact ? 1.5 : 1.5) / s} />
+      <rect x={0} y={0} width={wall.w} height={wall.h} fill={COLORS.wall} filter={shadow} />
+      <rect x={0} y={0} width={wall.w} height={wall.h} fill="none" stroke={COLORS.wallStroke} strokeWidth={(compact ? 1.5 : 1) / s} />
       <g stroke={COLORS.grid} strokeWidth={1 / s}>{gridLines}</g>
 
       {furniture.enabled && (
@@ -184,13 +196,14 @@ export function WallSvg({
       {pieces.map((p) => {
         const ow = outerW(p);
         const oh = outerH(p);
-        const iw = innerW(p);
-        const ih = innerH(p);
+        const d = drawnParts(p);
+        const iw = ow - 2 * d.frame;
+        const ih = oh - 2 * d.frame;
         const isBad = bad.has(p.id);
         const isSel = p.id === selectedId;
         const stroke = isBad ? COLORS.invalid : isSel ? COLORS.selected : '#1a1714';
-        const artX = p.x + p.frame + p.matX;
-        const artY = p.y + p.frame + p.matY;
+        const artX = p.x + d.frame + d.matX;
+        const artY = p.y + d.frame + d.matY;
         const showLabel = !compact && ow * s > 56 && oh * s > 30;
         const maxChars = Math.max(3, Math.floor((ow * s) / 6.5));
         const name = p.name.length > maxChars ? `${p.name.slice(0, maxChars - 1)}…` : p.name;
@@ -200,16 +213,16 @@ export function WallSvg({
             onPointerDown={interactive ? (e) => handlers.onPiece?.(e, p) : undefined}
             style={{ cursor: cursor('grab') }}
           >
-            <rect x={p.x} y={p.y} width={ow} height={oh} fill={COLORS.frame} />
-            <rect x={p.x + p.frame} y={p.y + p.frame} width={iw} height={ih} fill={COLORS.mat} />
-            <rect x={artX} y={artY} width={p.artW} height={p.artH} fill={COLORS.art} stroke={COLORS.artStroke} strokeWidth={0.75 / s} />
+            <rect x={p.x} y={p.y} width={ow} height={oh} fill={COLORS.frame} filter={shadow} />
+            <rect x={p.x + d.frame} y={p.y + d.frame} width={iw} height={ih} fill={COLORS.mat} />
+            <rect x={artX} y={artY} width={d.artW} height={d.artH} fill={COLORS.art} stroke={COLORS.artStroke} strokeWidth={0.75 / s} />
             {p.image && (
               <image
                 href={p.image}
-                x={artX}
-                y={artY}
-                width={p.artW}
-                height={p.artH}
+                x={p.photoFull ? p.x : artX}
+                y={p.photoFull ? p.y : artY}
+                width={p.photoFull ? ow : d.artW}
+                height={p.photoFull ? oh : d.artH}
                 preserveAspectRatio="xMidYMid slice"
                 pointerEvents="none"
               />
@@ -268,9 +281,10 @@ export function WallSvg({
               y={h.y - handleSize / 2}
               width={handleSize}
               height={handleSize}
+              rx={2 / s}
               fill="#fff"
-              stroke={COLORS.wallStroke}
-              strokeWidth={1.5 / s}
+              stroke={COLORS.frame}
+              strokeWidth={1.25 / s}
               pointerEvents="none"
             />
           </g>

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { createSampleLayout } from '../model';
 import { currentLayout, initState, reducer } from '../store';
-import { loadState, parseLayoutFile, saveState, serializeLayout } from '../storage';
+import { withSizing } from '../geometry';
+import { DEFAULT_PREFS, loadPrefs, loadState, parseLayoutFile, savePrefs, saveState, serializeLayout } from '../storage';
 
 function memoryStore() {
   const data = new Map<string, string>();
@@ -17,6 +18,15 @@ describe('JSON files', () => {
     const back = parseLayoutFile(serializeLayout(layout));
     expect(back.id).not.toBe(layout.id);
     expect({ ...back, id: layout.id }).toEqual(layout);
+  });
+  it('round-trips outer-sized pieces and validates their size', () => {
+    const layout = createSampleLayout();
+    layout.pieces[0] = { ...withSizing(layout.pieces[0], 'outer'), outerW: 40 };
+    const back = parseLayoutFile(serializeLayout(layout));
+    expect(back.pieces[0]).toEqual(layout.pieces[0]);
+    const doc = JSON.parse(serializeLayout(layout));
+    delete doc.layout.pieces[0].outerH;
+    expect(() => parseLayoutFile(JSON.stringify(doc))).toThrow(/outerH/);
   });
   it('rejects bad files with a readable message', () => {
     expect(() => parseLayoutFile('nope')).toThrow(/valid JSON/);
@@ -82,5 +92,19 @@ describe('undo/redo', () => {
     s = reducer(s, { type: 'delete', id: s.currentId });
     expect(s.layouts).toHaveLength(1);
     expect(currentLayout(s).pieces).toHaveLength(0);
+  });
+});
+
+describe('preferences', () => {
+  it('defaults, then remembers the unit and the layouts panel state', () => {
+    const store = memoryStore();
+    expect(loadPrefs(store)).toEqual(DEFAULT_PREFS);
+    savePrefs(store, { unit: 'cm', showSuggestions: false, dock: 'right' });
+    expect(loadPrefs(store)).toEqual({ unit: 'cm', showSuggestions: false, dock: 'right' });
+  });
+  it('reads preferences saved before the panel options existed', () => {
+    const store = memoryStore();
+    store.setItem('gallery-wall.prefs.v1', '{"unit":"cm"}');
+    expect(loadPrefs(store)).toEqual({ unit: 'cm', showSuggestions: true, dock: 'bottom' });
   });
 });

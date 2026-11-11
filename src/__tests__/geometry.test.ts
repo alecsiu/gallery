@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { invalidPieceIds, neighborGaps, outerH, outerW, innerW, snapRect, wallGaps } from '../geometry';
+import { drawnParts, invalidPieceIds, neighborGaps, outerH, outerW, innerW, pieceRect, snapRect, wallGaps, withSizing } from '../geometry';
 import type { Piece } from '../types';
 
 const piece = (id: string, x: number, y: number, artW = 8, artH = 10): Piece => ({
@@ -64,5 +64,29 @@ describe('snapRect', () => {
   it('does not snap outside the threshold', () => {
     const r = snapRect({ x: 60, y: 40, w: 10, h: 10 }, [], [], wall, 2, 1);
     expect(r).toMatchObject({ x: 60, y: 40 });
+  });
+});
+
+describe('sizing modes', () => {
+  it('uses the stated overall size for outer-sized pieces', () => {
+    const p: Piece = { ...piece('a', 0, 0), sizing: 'outer', outerW: 30, outerH: 20 };
+    expect([outerW(p), outerH(p)]).toEqual([30, 20]);
+    expect(pieceRect(p)).toEqual({ x: 0, y: 0, w: 30, h: 20 });
+    const d = drawnParts(p);
+    expect(d.artW + 2 * d.frame).toBeCloseTo(30);
+    expect(d.artH + 2 * d.frame).toBeCloseTo(20);
+  });
+  it('keeps the overall size when switching modes', () => {
+    const spec = piece('a', 0, 0); // 8x10 art, mat 2/1, frame 1 -> 14 x 14
+    const outer = withSizing(spec, 'outer');
+    expect([outer.outerW, outer.outerH]).toEqual([14, 14]);
+    const grown = { ...outer, outerW: 20, outerH: 24 };
+    const back = withSizing(grown, 'spec');
+    expect(back.sizing).toBeUndefined();
+    expect([back.matX, back.matY, back.frame]).toEqual([2, 1, 1]);
+    expect([outerW(back), outerH(back)]).toEqual([20, 24]);
+    // Too small for the remembered mat and frame: fall back to bare art.
+    const tiny = withSizing({ ...outer, outerW: 3, outerH: 3 }, 'spec');
+    expect([tiny.artW, tiny.artH, tiny.matX, tiny.frame]).toEqual([3, 3, 0, 0]);
   });
 });
