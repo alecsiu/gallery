@@ -115,7 +115,7 @@ h3 { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacin
 .stage.dock-none { grid-template-rows: minmax(0, 1fr); }
 .canvas { position: relative; display: grid; grid-template-rows: minmax(0, 1fr) auto; min-height: 0; min-width: 0; }
 .canvas-scroll { overflow: auto; display: grid; padding: 12px; place-items: start center; min-height: 0; }
-.canvas-scroll { touch-action: none; overscroll-behavior: contain; }
+.canvas-scroll { touch-action: none; overscroll-behavior: contain; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
 .canvas-scroll.panning, .canvas-scroll.panning * { cursor: grabbing !important; }
 .canvas-box { flex: none; }
 .zoom-pct { min-width: 34px; text-align: right; font-variant-numeric: tabular-nums; }
@@ -167,15 +167,35 @@ h3 { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacin
 
 .print-sheet { display: none; }
 
+/* Phones and narrow windows: the wall stays on screen at the top, the controls scroll beneath it. Nothing scrolls the
+   page itself, so touches on the wall are always pan / zoom / drag. */
 @media (max-width: 900px) {
-  .main { grid-template-columns: 1fr; grid-template-rows: auto auto; overflow-y: auto; }
-  .stage.dock-right { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
-  .dock-right .suggestions { border-left: none; border-top: 1px solid var(--line); }
-  .dock-right .thumbs { flex-direction: row; overflow: auto hidden; }
+  html, body { overflow: hidden; overscroll-behavior: none; }
+  .app { height: 100vh; height: 100dvh; }
+  .toolbar { flex-wrap: nowrap; overflow-x: auto; gap: 12px; padding: 7px 12px; scrollbar-width: none; }
+  .toolbar::-webkit-scrollbar { display: none; }
+  .toolbar h1 { font-size: 16px; white-space: nowrap; }
+  .toolbar .group { flex: none; flex-wrap: nowrap; }
   .toolbar .group.end { margin-left: 0; }
-  .app { height: auto; min-height: 100%; }
-  .sidebar { border-right: none; border-bottom: 1px solid var(--line); max-height: none; }
-  .canvas-scroll { height: 60vh; }
+  .toolbar .check { white-space: nowrap; }
+  .name-input { width: 130px; }
+  .main { display: flex; flex-direction: column; }
+  .stage { order: -1; flex: 1 1 56%; }
+  .stage.dock-right { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+  .sidebar { flex: 1 1 44%; min-height: 0; border-right: none; border-top: 1px solid var(--line); padding: 12px 14px 24px; }
+  .canvas-scroll { padding: 6px; }
+  .hint { display: none; }
+  /* iOS zooms the page when focusing a field with text smaller than 16px. */
+  input[type='text'], select { font-size: 16px; }
+  .zoom { right: 8px; top: 8px; padding: 3px 4px 3px 10px; }
+  .zoom label, .zoom input { display: none; }
+  .suggestions, .dock-right .suggestions { border-left: none; border-top: 1px solid var(--line); padding: 8px 12px; }
+  .suggestions .section-head { margin-bottom: 4px; }
+  .thumbs, .dock-right .thumbs { flex-direction: row; overflow: auto hidden; flex: none; }
+  .thumbs svg { width: 92px; height: auto; }
+  .thumb-label { max-width: 92px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* The Suggestions dock buttons do nothing useful at this width. */
+  .suggestions .segmented { display: none; }
 }
 
 @media print {

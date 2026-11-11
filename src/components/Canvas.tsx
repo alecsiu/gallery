@@ -108,8 +108,16 @@ export function Canvas({ layout, unit, selectedId, showDims, dispatch }: Props) 
       const delta = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
       zoomToRef.current(zoomRef.current * Math.exp(-delta * 0.01), e.clientX, e.clientY);
     };
+    // iOS Safari's own pinch (page zoom) is announced with these non-standard events; keep it off the canvas.
+    const stop = (e: Event) => e.preventDefault();
     el.addEventListener('wheel', onWheel, { passive: false });
-    return () => el.removeEventListener('wheel', onWheel);
+    el.addEventListener('gesturestart', stop);
+    el.addEventListener('gesturechange', stop);
+    return () => {
+      el.removeEventListener('wheel', onWheel);
+      el.removeEventListener('gesturestart', stop);
+      el.removeEventListener('gesturechange', stop);
+    };
   }, []);
 
   /** Every pointer currently down on the canvas, for pinch detection. */
@@ -119,6 +127,8 @@ export function Canvas({ layout, unit, selectedId, showDims, dispatch }: Props) 
     return { dist: Math.hypot(a.x - b.x, a.y - b.y), x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
   };
   const onDownCapture = (e: ReactPointerEvent) => {
+    // A first finger means nothing else is down; drop any pointer whose release never reached us.
+    if (e.isPrimary) pointers.current.clear();
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pointers.current.size !== 2) return;
     // A second finger turns whatever was happening into a pinch; the piece under it must not start a drag.

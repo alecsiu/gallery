@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ChangeEvent, Dispatch } from 'react';
 import { innerH, innerW, isOuterSized, outerH, outerW, withSizing } from '../geometry';
 import { fileToThumbnail } from '../image';
@@ -34,6 +34,14 @@ export function Sidebar({ layout, unit, selectedId, dispatch, notify }: Props) {
     edit((l) => ({ ...l, pieces: [...l.pieces, piece] }));
     dispatch({ type: 'select', id: piece.id });
   };
+
+  // On a phone the details sit below the wall, out of sight: bring them up when a piece is picked.
+  const selectedRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (selectedId && window.matchMedia('(max-width: 900px)').matches) {
+      selectedRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    }
+  }, [selectedId]);
 
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const addPhotoPiece = (photo: PhotoPiece) => {
@@ -169,7 +177,7 @@ export function Sidebar({ layout, unit, selectedId, dispatch, notify }: Props) {
       </section>
 
       {selected && (
-        <section key={selected.id}>
+        <section key={selected.id} ref={selectedRef}>
           <div className="section-head">
             <h2>Selected piece</h2>
             <div className="btn-row">
