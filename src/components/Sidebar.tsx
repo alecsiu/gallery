@@ -7,6 +7,7 @@ import type { Action } from '../store';
 import type { Layout, Piece, Unit } from '../types';
 import { formatLabel } from '../units';
 import { resizeWall } from './Canvas';
+import { Icon, IconButton } from './Icon';
 import { NumField } from './NumField';
 import { PhotoDialog } from './PhotoDialog';
 import type { PhotoPiece } from './PhotoDialog';
@@ -148,13 +149,12 @@ export function Sidebar({ layout, unit, selectedId, dispatch, notify }: Props) {
         <div className="section-head">
           <h2>Pieces ({pieces.length})</h2>
           <div className="btn-row">
-            <label className="button" title="Take or choose a photo of a piece, outline it, and add it to scale">
-              From photo
+            <label className="button icon" title="Add a piece from a photo">
+              <Icon name="camera" />
+              <span className="sr-only">Add a piece from a photo</span>
               <input type="file" accept="image/*" hidden onChange={(e) => pickPhoto(e)} />
             </label>
-            <button type="button" className="primary" onClick={addPiece}>
-              + Add piece
-            </button>
+            <IconButton icon="plus" label="Add a piece" className="primary" onClick={addPiece} />
           </div>
         </div>
         {photoJob && (!photoJob.forId || photoTarget) && (
@@ -192,12 +192,8 @@ export function Sidebar({ layout, unit, selectedId, dispatch, notify }: Props) {
           <div className="section-head">
             <h2>Selected piece</h2>
             <div className="btn-row">
-              <button type="button" onClick={() => duplicate(selected)}>
-                Duplicate
-              </button>
-              <button type="button" className="danger" onClick={() => remove(selected.id)}>
-                Delete
-              </button>
+              <IconButton icon="copy" label="Duplicate this piece" onClick={() => duplicate(selected)} />
+              <IconButton icon="trash" label="Delete this piece" className="danger" onClick={() => remove(selected.id)} />
             </div>
           </div>
           <div className="field">

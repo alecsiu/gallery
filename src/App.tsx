@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { Canvas } from './components/Canvas';
+import { IconButton } from './components/Icon';
 import { PrintSheet } from './components/PrintSheet';
 import { Sidebar } from './components/Sidebar';
 import { Suggestions } from './components/Suggestions';
@@ -34,6 +35,8 @@ export default function App() {
   const setShowSuggestions = (v: boolean) => setPrefs((p) => ({ ...p, showSuggestions: v }));
   const setDock = (d: Dock) => setPrefs((p) => ({ ...p, dock: d }));
   const [showDims, setShowDims] = useState(true);
+  /** Only the wall on screen: toolbar, side panel and suggestions are put away until toggled back. */
+  const [wallOnly, setWallOnly] = useState(false);
   const [salt, setSalt] = useState(0);
   const [notice, setNotice] = useState<{ kind: 'error' | 'info'; text: string } | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -123,6 +126,10 @@ export default function App() {
       const target = e.target as HTMLElement | null;
       if (target && (target.closest('dialog') || target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable)) return;
       const mod = e.ctrlKey || e.metaKey;
+      if (e.key === 'Escape' && wallOnly) {
+        setWallOnly(false);
+        return;
+      }
       if (mod && e.key.toLowerCase() === 'z') {
         e.preventDefault();
         dispatch({ type: e.shiftKey ? 'redo' : 'undo' });
@@ -157,10 +164,10 @@ export default function App() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [state.selectedId, unit]);
+  }, [state.selectedId, unit, wallOnly]);
 
   return (
-    <div className="app">
+    <div className={wallOnly ? 'app wall-only' : 'app'}>
       <Toolbar
         state={state}
         layout={layout}
@@ -171,6 +178,7 @@ export default function App() {
         onShowDims={setShowDims}
         showSuggestions={showSuggestions}
         onShowSuggestions={setShowSuggestions}
+        onWallOnly={() => setWallOnly(true)}
         onExportJson={() => exportJson(layout)}
         onImportFile={importFile}
         onExportPng={() => exportPng(layout, unit).catch((err) => notify(err instanceof Error ? err.message : 'Export failed'))}
@@ -183,9 +191,16 @@ export default function App() {
       )}
       <main className="main">
         <Sidebar layout={layout} unit={unit} selectedId={state.selectedId} dispatch={dispatch} notify={notify} />
-        <div className={`stage dock-${showSuggestions ? dock : 'none'}`}>
+        <div className={`stage dock-${showSuggestions && !wallOnly ? dock : 'none'}`}>
+          {wallOnly && (
+            <div className="wall-bar" role="toolbar" aria-label="Wall controls">
+              <IconButton icon="collapse" label="Show the controls again (Esc)" onClick={() => setWallOnly(false)} />
+              <IconButton icon="undo" label="Undo" onClick={() => dispatch({ type: 'undo' })} disabled={!state.past.length} />
+              <IconButton icon="redo" label="Redo" onClick={() => dispatch({ type: 'redo' })} disabled={!state.future.length} />
+            </div>
+          )}
           <Canvas layout={layout} unit={unit} selectedId={state.selectedId} showDims={showDims} dispatch={dispatch} />
-          {showSuggestions && (
+          {showSuggestions && !wallOnly && (
             <Suggestions
               layout={layout}
               unit={unit}

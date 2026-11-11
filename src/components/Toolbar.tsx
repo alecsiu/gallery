@@ -3,6 +3,8 @@ import type { Dispatch } from 'react';
 import { createLayout, uid } from '../model';
 import type { Action, State } from '../store';
 import type { Layout, Unit } from '../types';
+import { IconButton } from './Icon';
+import { Menu, MenuHeading, MenuItem } from './Menu';
 
 interface Props {
   state: State;
@@ -14,13 +16,18 @@ interface Props {
   onShowDims: (v: boolean) => void;
   showSuggestions: boolean;
   onShowSuggestions: (v: boolean) => void;
+  onWallOnly: () => void;
   onExportJson: () => void;
   onImportFile: (file: File) => void;
   onExportPng: () => void;
   onPrint: () => void;
 }
 
-export function Toolbar({ state, layout, unit, showDims, dispatch, onUnit, onShowDims, showSuggestions, onShowSuggestions, onExportJson, onImportFile, onExportPng, onPrint }: Props) {
+/**
+ * The everyday controls as glyph buttons (switch layout, undo, what to show, full-screen wall); everything used
+ * once in a while (managing layouts, files, units) sits in the menu at the end.
+ */
+export function Toolbar({ state, layout, unit, showDims, dispatch, onUnit, onShowDims, showSuggestions, onShowSuggestions, onWallOnly, onExportJson, onImportFile, onExportPng, onPrint }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const uniqueName = (base: string) => {
@@ -31,6 +38,23 @@ export function Toolbar({ state, layout, unit, showDims, dispatch, onUnit, onSho
     return `${base} ${i}`;
   };
 
+  const rename = () => {
+    const name = window.prompt('Layout name', layout.name)?.trim().slice(0, 60);
+    if (name && name !== layout.name) dispatch({ type: 'edit', change: (l) => ({ ...l, name }), t: Date.now() });
+  };
+
+  const duplicate = () =>
+    dispatch({
+      type: 'create',
+      layout: {
+        ...layout,
+        id: uid(),
+        name: uniqueName(`${layout.name} copy`),
+        pieces: layout.pieces.map((p) => ({ ...p, id: uid() })),
+        updatedAt: Date.now(),
+      },
+    });
+
   return (
     <header className="toolbar">
       <h1>
@@ -39,96 +63,77 @@ export function Toolbar({ state, layout, unit, showDims, dispatch, onUnit, onSho
           <rect x="16" y="3" width="6" height="6" rx="1" fill="currentColor" />
           <rect x="16" y="12" width="6" height="9" rx="1" fill="none" stroke="currentColor" strokeWidth="2" />
         </svg>
-        Gallery Wall Planner
+        <span className="title">Gallery Wall Planner</span>
       </h1>
 
-      <div className="group">
-        <label htmlFor="layout-select" className="sr-only">
-          Saved layouts
-        </label>
-        <select id="layout-select" value={state.currentId} onChange={(e) => dispatch({ type: 'switch', id: e.target.value })}>
-          {state.layouts.map((l) => (
-            <option key={l.id} value={l.id}>
-              {l.name}
-            </option>
-          ))}
-        </select>
-        <label htmlFor="layout-name" className="sr-only">
-          Layout name
-        </label>
-        <input
-          id="layout-name"
-          className="name-input"
-          type="text"
-          value={layout.name}
-          maxLength={60}
-          onChange={(e) => dispatch({ type: 'edit', change: (l) => ({ ...l, name: e.target.value }), key: 'rename', t: Date.now() })}
-        />
-        <button type="button" onClick={() => dispatch({ type: 'create', layout: createLayout(uniqueName('Untitled wall')) })}>
-          New
-        </button>
-        <button
-          type="button"
-          onClick={() =>
-            dispatch({
-              type: 'create',
-              layout: {
-                ...layout,
-                id: uid(),
-                name: uniqueName(`${layout.name} copy`),
-                pieces: layout.pieces.map((p) => ({ ...p, id: uid() })),
-                updatedAt: Date.now(),
-              },
-            })
-          }
-        >
-          Duplicate
-        </button>
-        <button
-          type="button"
-          className="danger"
-          onClick={() => {
-            if (window.confirm(`Delete "${layout.name}"? This cannot be undone.`)) dispatch({ type: 'delete', id: layout.id });
-          }}
-        >
-          Delete
-        </button>
-      </div>
-
-      <div className="group">
-        <button type="button" onClick={() => dispatch({ type: 'undo' })} disabled={!state.past.length} title="Undo (Ctrl+Z)">
-          Undo
-        </button>
-        <button type="button" onClick={() => dispatch({ type: 'redo' })} disabled={!state.future.length} title="Redo (Ctrl+Shift+Z)">
-          Redo
-        </button>
-      </div>
-
-      <div className="group">
-        <div className="segmented" role="group" aria-label="Units">
-          {(['in', 'cm'] as const).map((u) => (
-            <button key={u} type="button" aria-pressed={unit === u} className={unit === u ? 'on' : undefined} onClick={() => onUnit(u)}>
-              {u}
-            </button>
-          ))}
-        </div>
-        <label className="check inline">
-          <input type="checkbox" role="switch" checked={showDims} onChange={(e) => onShowDims(e.target.checked)} />
-          Dimensions
-        </label>
-        <label className="check inline" title="Show or hide the suggested layouts panel">
-          <input type="checkbox" role="switch" checked={showSuggestions} onChange={(e) => onShowSuggestions(e.target.checked)} />
-          Suggested layouts
-        </label>
-      </div>
+      <label htmlFor="layout-select" className="sr-only">
+        Saved layouts
+      </label>
+      <select id="layout-select" className="layout-select" value={state.currentId} onChange={(e) => dispatch({ type: 'switch', id: e.target.value })}>
+        {state.layouts.map((l) => (
+          <option key={l.id} value={l.id}>
+            {l.name}
+          </option>
+        ))}
+      </select>
 
       <div className="group end">
-        <button type="button" onClick={onExportJson} title="Download this layout as a JSON file">
-          Save to file
-        </button>
-        <button type="button" onClick={() => fileRef.current?.click()} title="Load a layout from a JSON file">
-          Load from file
-        </button>
+        <IconButton icon="undo" label="Undo (Ctrl+Z)" onClick={() => dispatch({ type: 'undo' })} disabled={!state.past.length} />
+        <IconButton icon="redo" label="Redo (Ctrl+Shift+Z)" onClick={() => dispatch({ type: 'redo' })} disabled={!state.future.length} />
+      </div>
+      <div className="group">
+        <IconButton icon="layouts" label={showSuggestions ? 'Hide suggested layouts' : 'Show suggested layouts'} pressed={showSuggestions} onClick={() => onShowSuggestions(!showSuggestions)} />
+      </div>
+      <div className="group">
+        <IconButton icon="expand" label="Show only the wall" onClick={onWallOnly} />
+        <Menu label="More">
+          <MenuHeading>Layout</MenuHeading>
+          <MenuItem icon="plus" onSelect={() => dispatch({ type: 'create', layout: createLayout(uniqueName('Untitled wall')) })}>
+            New layout
+          </MenuItem>
+          <MenuItem icon="copy" onSelect={duplicate}>
+            Duplicate layout
+          </MenuItem>
+          <MenuItem icon="rename" onSelect={rename}>
+            Rename…
+          </MenuItem>
+          <MenuItem
+            icon="trash"
+            danger
+            onSelect={() => {
+              if (window.confirm(`Delete "${layout.name}"? This cannot be undone.`)) dispatch({ type: 'delete', id: layout.id });
+            }}
+          >
+            Delete layout…
+          </MenuItem>
+          <MenuHeading>File</MenuHeading>
+          <MenuItem icon="download" onSelect={onExportJson}>
+            Save to file
+          </MenuItem>
+          <MenuItem icon="upload" onSelect={() => fileRef.current?.click()}>
+            Load from file…
+          </MenuItem>
+          <MenuItem icon="image" onSelect={onExportPng}>
+            Export as PNG
+          </MenuItem>
+          <MenuItem icon="print" onSelect={onPrint}>
+            Print…
+          </MenuItem>
+          <MenuHeading>Show</MenuHeading>
+          <MenuItem checked={showDims} onSelect={() => onShowDims(!showDims)}>
+            Dimensions
+          </MenuItem>
+          <MenuItem checked={showSuggestions} onSelect={() => onShowSuggestions(!showSuggestions)}>
+            Suggested layouts
+          </MenuItem>
+          <MenuHeading>Units</MenuHeading>
+          <MenuItem checked={unit === 'in'} onSelect={() => onUnit('in')}>
+            Inches
+          </MenuItem>
+          <MenuItem checked={unit === 'cm'} onSelect={() => onUnit('cm')}>
+            Centimetres
+          </MenuItem>
+        </Menu>
         <input
           ref={fileRef}
           type="file"
@@ -140,12 +145,6 @@ export function Toolbar({ state, layout, unit, showDims, dispatch, onUnit, onSho
             if (file) onImportFile(file);
           }}
         />
-        <button type="button" onClick={onExportPng}>
-          PNG
-        </button>
-        <button type="button" onClick={onPrint}>
-          Print
-        </button>
       </div>
     </header>
   );

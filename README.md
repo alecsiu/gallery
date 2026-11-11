@@ -44,6 +44,9 @@ works from the `/<repo>/` subpath.
   anchored to the bottom or the right of the wall; the choice is remembered.
 - **Saved layouts.** Multiple named layouts persist in the browser's local storage and survive reloads. Save to / load
   from a `.gallery.json` file.
+- **Wall-only view.** The expand button in the toolbar hides the toolbar, side panel and suggestions so the wall
+  fills the screen; the button at its top left (or Esc) brings them back. Less-used actions (layouts, files, units,
+  what to show) live in the toolbar's "More" menu.
 - **Undo/redo** (Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z), piece images, **PNG export**, and **Print** (wall plan plus a hanging
   list with each piece's distance from the left edge, top and floor).
 

@@ -35,13 +35,18 @@ button.primary { background: var(--text); border-color: var(--text); color: #fff
 button.primary:hover:not(:disabled) { background: #45403a; border-color: #45403a; }
 button.danger { color: var(--danger); }
 button.danger:hover:not(:disabled) { background: #fdf0f2; border-color: #e3a5b2; }
-button.icon { padding: 5px 7px; }
+button.icon, .button.icon { padding: 0; width: 34px; height: 34px; flex: none; }
+button.icon.on, button.icon.on:hover:not(:disabled) { background: var(--text); border-color: var(--text); color: #fff; }
+.glyph { flex: none; display: block; }
+.glyph-gap { width: 18px; flex: none; }
+/* Fingers need a bigger target than a mouse pointer. */
+@media (pointer: coarse) { button.icon, .button.icon { width: 40px; height: 40px; } }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 .app { display: flex; flex-direction: column; height: 100%; }
 .toolbar {
-  display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center;
+  display: flex; flex-wrap: nowrap; gap: 8px 12px; align-items: center;
   padding: 9px 16px; background: var(--panel); border-bottom: 1px solid var(--line);
   box-shadow: var(--shadow-sm); position: relative; z-index: 2;
 }
@@ -51,21 +56,32 @@ button.icon { padding: 5px 7px; }
 }
 .logo { flex: none; }
 .group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.toolbar .group { flex-wrap: nowrap; flex: none; }
 .toolbar .group.end { margin-left: auto; }
+.layout-select { flex: 0 1 220px; height: 34px; text-overflow: ellipsis; }
+.menu { position: relative; }
+.menu-list {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; min-width: 216px; padding: 6px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow-md), 0 12px 32px rgba(58, 47, 28, 0.18);
+  max-height: calc(100dvh - 80px); overflow-y: auto;
+}
+.menu-heading { padding: 8px 10px 3px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.menu-item { width: 100%; justify-content: flex-start; gap: 10px; padding: 8px 10px; border-color: transparent; background: none; box-shadow: none; text-align: left; white-space: nowrap; }
+.menu-item:hover:not(:disabled), .menu-item:focus-visible { background: #f1ede4; border-color: transparent; }
+.menu-item:active:not(:disabled) { transform: none; }
 select, input[type='text'] {
   padding: 5px 9px; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--field); min-width: 0;
   transition: border-color 0.12s, box-shadow 0.12s;
 }
 select:hover, input[type='text']:hover:not([readonly]) { border-color: #a89f8c; }
 select:focus, input[type='text']:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-.name-input { width: 170px; }
 .segmented { display: inline-flex; box-shadow: var(--shadow-sm); border-radius: var(--radius); }
 .segmented.fill { display: flex; }
 .segmented.fill button { flex: 1; }
 .segmented button { border-radius: 0; margin-left: -1px; box-shadow: none; }
 .segmented button:first-child { border-radius: var(--radius) 0 0 var(--radius); margin-left: 0; }
 .segmented button:last-child { border-radius: 0 var(--radius) var(--radius) 0; }
-.segmented button.on, .segmented button.on:hover { background: var(--text); color: #fff; border-color: var(--text); position: relative; }
+.segmented button.on, .segmented button.on:hover:not(:disabled) { background: var(--text); color: #fff; border-color: var(--text); position: relative; }
 .check { display: flex; align-items: center; gap: 7px; margin: 10px 0; cursor: pointer; }
 .check.inline { margin: 0; }
 /* Toggle switches */
@@ -125,7 +141,15 @@ h3 { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacin
   border-radius: 999px; padding: 4px 5px 4px 12px; font-size: 12px; color: var(--muted); box-shadow: var(--shadow-md);
 }
 .zoom input { width: 90px; }
-.zoom button { border-radius: 999px; padding: 2px 10px; color: var(--text); }
+.zoom button { border-radius: 999px; color: var(--text); width: 30px; height: 30px; }
+.stage { position: relative; }
+.wall-bar {
+  position: absolute; left: 16px; top: 14px; z-index: 3; display: flex; gap: 4px; padding: 4px;
+  background: rgba(253, 252, 249, 0.94); backdrop-filter: blur(6px); border: 1px solid var(--line); border-radius: 999px; box-shadow: var(--shadow-md);
+}
+.wall-bar button { border-radius: 999px; }
+.wall-only .toolbar, .wall-only .sidebar, .wall-only .hint { display: none; }
+.wall-only .main { display: grid; grid-template-columns: minmax(0, 1fr); }
 .hint { margin: 0; padding: 7px 16px; font-size: 12px; color: var(--muted); border-top: 1px solid var(--line); background: var(--panel); }
 
 .suggestions { display: flex; flex-direction: column; min-width: 0; min-height: 0; border-top: 1px solid var(--line); background: var(--panel); padding: 12px 16px 14px; }
@@ -177,13 +201,12 @@ h3 { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacin
 @media (max-width: 900px) {
   html, body { overflow: hidden; overscroll-behavior: none; }
   .app { height: 100vh; height: 100dvh; }
-  .toolbar { flex-wrap: nowrap; overflow-x: auto; gap: 12px; padding: 7px 12px; scrollbar-width: none; }
-  .toolbar::-webkit-scrollbar { display: none; }
-  .toolbar h1 { font-size: 16px; white-space: nowrap; }
-  .toolbar .group { flex: none; flex-wrap: nowrap; }
-  .toolbar .group.end { margin-left: 0; }
-  .toolbar .check { white-space: nowrap; }
-  .name-input { width: 130px; }
+  .toolbar { flex-wrap: nowrap; gap: 8px; padding: 7px 10px; }
+  .toolbar h1 { margin: 0; }
+  .toolbar .title { display: none; }
+  .layout-select { flex: 1 1 0; }
+  .toolbar .group { gap: 4px; }
+  .wall-bar { left: 8px; top: 8px; }
   .main { display: flex; flex-direction: column; }
   .stage { order: -1; flex: 1 1 56%; }
   .stage.dock-right { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
@@ -202,6 +225,8 @@ h3 { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacin
   /* The Suggestions dock buttons do nothing useful at this width. */
   .suggestions .segmented { display: none; }
 }
+
+@media (max-width: 520px) { .toolbar h1 { display: none; } }
 
 @media print {
   @page { size: landscape; margin: 12mm; }

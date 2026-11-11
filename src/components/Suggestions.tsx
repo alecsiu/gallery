@@ -1,5 +1,6 @@
 import type { Dock, Layout, Unit } from '../types';
 import type { Suggestion } from '../suggest';
+import { IconButton } from './Icon';
 import { WallSvg, worldMargin } from './WallSvg';
 
 interface Props {
@@ -28,9 +29,7 @@ export function Suggestions({ layout, unit, suggestions, dock, onDock, onClose, 
       <div className="section-head">
         <h2>Suggested layouts</h2>
         <div className="btn-row">
-          <button type="button" onClick={onShuffle} disabled={layout.pieces.length < 3}>
-            Shuffle
-          </button>
+          <IconButton icon="shuffle" label="Shuffle: try other arrangements" onClick={onShuffle} disabled={layout.pieces.length < 3} />
           <div className="segmented" role="group" aria-label="Panel position">
             {DOCKS.map((d) => (
               <button
@@ -49,11 +48,7 @@ export function Suggestions({ layout, unit, suggestions, dock, onDock, onClose, 
               </button>
             ))}
           </div>
-          <button type="button" className="icon" aria-label="Hide suggested layouts" title="Hide suggested layouts" onClick={onClose}>
-            <svg viewBox="0 0 18 18" width="16" height="16" aria-hidden="true">
-              <path d="M4.5 4.5l9 9m0-9l-9 9" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
-            </svg>
-          </button>
+          <IconButton icon="close" label="Hide suggested layouts" onClick={onClose} />
         </div>
       </div>
       {layout.pieces.length === 0 ? (

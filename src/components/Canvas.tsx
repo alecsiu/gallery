@@ -5,6 +5,7 @@ import type { Guide } from '../geometry';
 import { snapRect } from '../geometry';
 import type { Action } from '../store';
 import type { Layout, Piece, Rect, Unit } from '../types';
+import { IconButton } from './Icon';
 import { WallSvg, worldMargin } from './WallSvg';
 import type { HandleKind } from './WallSvg';
 
@@ -286,9 +287,7 @@ export function Canvas({ layout, unit, selectedId, showDims, dispatch }: Props) 
         <label htmlFor="zoom">Zoom</label>
         <input id="zoom" type="range" min={MIN_ZOOM} max={MAX_ZOOM} step={0.05} value={zoom} onChange={(e) => zoomAboutCenter(parseFloat(e.target.value))} />
         <span className="zoom-pct">{Math.round(zoom * 100)}%</span>
-        <button type="button" onClick={() => setZoom(1)} title="Fit wall in view">
-          Fit
-        </button>
+        <IconButton icon="fit" label="Fit the wall in view" onClick={() => setZoom(1)} />
       </div>
       <p className="hint">Tap a frame to select it, drag to move (Alt disables snapping, arrow keys nudge). Drag empty space to pan; pinch or Ctrl + scroll to zoom. Drag the wall's edge handles to resize it.</p>
     </div>
