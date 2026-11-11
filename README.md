@@ -24,7 +24,8 @@ works from the `/<repo>/` subpath.
 - **Add from a photo.** Take or pick a photo of a piece. The app looks for the piece against the wall behind it and
   proposes its outline (drag any corner to correct it, or outline it yourself if nothing is found), then you type one
   real measurement; the other follows the outline's proportions. An existing piece can be given a new photo too. The piece is straightened and drawn on the wall as it
-  really looks. Everything happens in the browser.
+  really looks. Everything happens in the browser. Finding the piece uses OpenCV (edge detection), which is downloaded
+  the first time a photo is opened (about 4 MB compressed) and cached after that; the rest of the app doesn't wait on it.
 - **Units.** Inches or cm, switchable at any time. Inputs accept `11.5`, `11 3/4`, `8' 4"`, `5 cm`, `50mm`. Everything is
   stored in inches.
 - **Drag and drop** on a to-scale wall. Snaps to other frames' edges and centers, the wall's center lines, and a

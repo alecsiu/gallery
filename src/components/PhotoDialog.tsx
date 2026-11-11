@@ -41,7 +41,9 @@ export function PhotoDialog({ file, unit, defaultName, replacing, onAdd, onClose
   const [error, setError] = useState<string | null>(null);
   const [corners, setCorners] = useState<Point[]>(START);
   /** Whether the current outline came from auto-detection, a failed attempt, or the user's own dragging. */
-  const [outlineFrom, setOutlineFrom] = useState<'detected' | 'not-found' | 'manual'>('manual');
+  const [outlineFrom, setOutlineFrom] = useState<'detecting' | 'detected' | 'not-found' | 'manual'>('manual');
+  /** Bumped whenever the outline is set some other way, so a slow detection doesn't overwrite it when it lands. */
+  const detectRun = useRef(0);
   const [name, setName] = useState(defaultName);
   /** The side the user last typed; while linked, the other side follows the outline's proportions. */
   const [anchor, setAnchor] = useState<{ side: 'w' | 'h'; value: number } | null>(null);
@@ -53,9 +55,13 @@ export function PhotoDialog({ file, unit, defaultName, replacing, onAdd, onClose
   }, []);
 
   const detect = (img: HTMLImageElement) => {
-    const found = detectPiece(img);
-    setCorners(found ?? START);
-    setOutlineFrom(found ? 'detected' : 'not-found');
+    const run = ++detectRun.current;
+    setOutlineFrom('detecting');
+    void detectPiece(img).then((found) => {
+      if (run !== detectRun.current) return;
+      setCorners(found ?? START);
+      setOutlineFrom(found ? 'detected' : 'not-found');
+    });
   };
 
   useEffect(() => {
@@ -75,6 +81,7 @@ export function PhotoDialog({ file, unit, defaultName, replacing, onAdd, onClose
     );
     return () => {
       cancelled = true;
+      detectRun.current++;
       if (url) URL.revokeObjectURL(url);
     };
   }, [file]);
@@ -104,6 +111,7 @@ export function PhotoDialog({ file, unit, defaultName, replacing, onAdd, onClose
   };
 
   const moveCorner = (i: number, p: Point) => {
+    detectRun.current++;
     setOutlineFrom('manual');
     setCorners((cs) => cs.map((c, k) => (k === i ? { x: clamp01(p.x), y: clamp01(p.y) } : c)));
   };
@@ -138,7 +146,9 @@ export function PhotoDialog({ file, unit, defaultName, replacing, onAdd, onClose
 
   const ring = corners.map((c) => `${c.x} ${c.y}`).join(' L');
   const status =
-    outlineFrom === 'detected'
+    outlineFrom === 'detecting'
+      ? 'Looking for the piece… You can also drag the corners yourself.'
+      : outlineFrom === 'detected'
       ? 'Found the piece. Check the outline and drag any corner that is off.'
       : outlineFrom === 'not-found'
         ? "Couldn't pick the piece out of this photo. Drag the four corners to its outer edges."
