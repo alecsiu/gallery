@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent, PointerEvent as ReactPointerEvent } from 'react';
-import { loadImage, straightenPhoto } from '../image';
+import { detectPiece, loadImage, straightenPhoto } from '../image';
 import type { Unit } from '../types';
 import { isConvexQuad, orderQuad, quadSize } from '../warp';
 import type { Point } from '../warp';
@@ -17,6 +17,8 @@ interface Props {
   file: File;
   unit: Unit;
   defaultName: string;
+  /** Set when giving an existing piece a new photo: its size is kept, so only the outline is asked for. */
+  replacing?: { name: string };
   onAdd: (piece: PhotoPiece) => void;
   onClose: () => void;
 }
@@ -28,25 +30,33 @@ const START: Point[] = [
   { x: 1 - INSET, y: 1 - INSET },
   { x: INSET, y: 1 - INSET },
 ];
-const DEFAULT_LONG_SIDE = 20; // inches, until the user types a real measurement
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 const round16 = (v: number) => Math.max(0.1, Math.round(v * 16) / 16);
 
 /** Outline a piece in a photo by its four corners, give one measurement, and get a to-scale piece with its picture. */
-export function PhotoDialog({ file, unit, defaultName, onAdd, onClose }: Props) {
+export function PhotoDialog({ file, unit, defaultName, replacing, onAdd, onClose }: Props) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const [photo, setPhoto] = useState<{ img: HTMLImageElement; url: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [corners, setCorners] = useState<Point[]>(START);
+  /** Whether the current outline came from auto-detection, a failed attempt, or the user's own dragging. */
+  const [outlineFrom, setOutlineFrom] = useState<'detected' | 'not-found' | 'manual'>('manual');
   const [name, setName] = useState(defaultName);
-  /** The side the user last typed; with `linked`, the other side follows the outline's proportions. */
+  /** The side the user last typed; while linked, the other side follows the outline's proportions. */
   const [anchor, setAnchor] = useState<{ side: 'w' | 'h'; value: number } | null>(null);
-  const [free, setFree] = useState<{ w: number; h: number } | null>(null);
+  /** Both sides typed independently (proportions unlinked). */
+  const [free, setFree] = useState<{ w: number | null; h: number | null } | null>(null);
 
   useEffect(() => {
     dialogRef.current?.showModal();
   }, []);
+
+  const detect = (img: HTMLImageElement) => {
+    const found = detectPiece(img);
+    setCorners(found ?? START);
+    setOutlineFrom(found ? 'detected' : 'not-found');
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -54,8 +64,12 @@ export function PhotoDialog({ file, unit, defaultName, onAdd, onClose }: Props) 
     loadImage(file).then(
       (loaded) => {
         url = loaded.url;
-        if (cancelled) URL.revokeObjectURL(url);
-        else setPhoto(loaded);
+        if (cancelled) {
+          URL.revokeObjectURL(url);
+          return;
+        }
+        setPhoto(loaded);
+        detect(loaded.img);
       },
       (err) => !cancelled && setError(err instanceof Error ? err.message : 'Could not read that image'),
     );
@@ -74,23 +88,25 @@ export function PhotoDialog({ file, unit, defaultName, onAdd, onClose }: Props) 
   }, [photo, corners]);
   const aspect = outline?.valid ? outline.aspect : 1;
 
-  let w: number;
-  let h: number;
+  // The real size has to be typed: a photo carries no scale, and a guess would silently be wrong.
+  let w: number | null = null;
+  let h: number | null = null;
   if (free) ({ w, h } = free);
   else if (anchor) {
     w = anchor.side === 'w' ? anchor.value : round16(anchor.value * aspect);
     h = anchor.side === 'h' ? anchor.value : round16(anchor.value / aspect);
-  } else {
-    w = aspect >= 1 ? DEFAULT_LONG_SIDE : round16(DEFAULT_LONG_SIDE * aspect);
-    h = aspect >= 1 ? round16(DEFAULT_LONG_SIDE / aspect) : DEFAULT_LONG_SIDE;
   }
+  const sized = replacing || (w !== null && h !== null);
 
   const commitSide = (side: 'w' | 'h', value: number) => {
     if (free) setFree({ ...free, [side]: value });
     else setAnchor({ side, value });
   };
 
-  const moveCorner = (i: number, p: Point) => setCorners((cs) => cs.map((c, k) => (k === i ? { x: clamp01(p.x), y: clamp01(p.y) } : c)));
+  const moveCorner = (i: number, p: Point) => {
+    setOutlineFrom('manual');
+    setCorners((cs) => cs.map((c, k) => (k === i ? { x: clamp01(p.x), y: clamp01(p.y) } : c)));
+  };
 
   const dragging = useRef<number | null>(null);
   const onHandleDown = (e: ReactPointerEvent<HTMLButtonElement>, i: number) => {
@@ -112,26 +128,38 @@ export function PhotoDialog({ file, unit, defaultName, onAdd, onClose }: Props) 
   };
 
   const add = () => {
-    if (!photo) return;
+    if (!photo || !sized) return;
     try {
-      onAdd({ name: name.trim() || defaultName, outerW: w, outerH: h, image: straightenPhoto(photo.img, corners) });
+      onAdd({ name: name.trim() || defaultName, outerW: w ?? 0, outerH: h ?? 0, image: straightenPhoto(photo.img, corners) });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not use that photo');
     }
   };
 
   const ring = corners.map((c) => `${c.x} ${c.y}`).join(' L');
+  const status =
+    outlineFrom === 'detected'
+      ? 'Found the piece. Check the outline and drag any corner that is off.'
+      : outlineFrom === 'not-found'
+        ? "Couldn't pick the piece out of this photo. Drag the four corners to its outer edges."
+        : 'Drag the four corners to the outer edges of the piece.';
 
   return (
     <dialog ref={dialogRef} className="photo-dialog" aria-labelledby="photo-title" onClose={onClose}>
-      <h2 id="photo-title">Add a piece from a photo</h2>
-      <p className="note">
-        Drag the four corners to the outer edges of the piece, then enter its real width or height. A straight-on photo gives the best
-        proportions.
-      </p>
+      <h2 id="photo-title">{replacing ? `New photo for “${replacing.name}”` : 'Add a piece from a photo'}</h2>
+      <div className="photo-status">
+        <p className={outlineFrom === 'detected' ? 'note found' : 'note'} role="status">
+          {photo ? status : 'Loading photo…'}
+        </p>
+        {photo && outlineFrom === 'manual' && (
+          <button type="button" onClick={() => detect(photo.img)} title="Look for the piece in the photo again">
+            Auto-detect
+          </button>
+        )}
+      </div>
 
       <div className="photo-area">
-        {photo ? (
+        {photo && (
           <div className="photo-frame" ref={frameRef}>
             <img src={photo.url} alt="Your photo" draggable={false} />
             <svg viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden="true">
@@ -153,8 +181,6 @@ export function PhotoDialog({ file, unit, defaultName, onAdd, onClose }: Props) 
               />
             ))}
           </div>
-        ) : (
-          !error && <p className="note">Loading photo…</p>
         )}
       </div>
 
@@ -165,25 +191,36 @@ export function PhotoDialog({ file, unit, defaultName, onAdd, onClose }: Props) 
       )}
       {photo && outline && !outline.valid && <p className="photo-error">The corners need to outline a four-sided shape.</p>}
 
-      <div className="photo-fields">
-        <div className="field">
-          <label htmlFor="photo-name">Name</label>
-          <input id="photo-name" type="text" value={name} maxLength={60} onChange={(e) => setName(e.target.value)} />
-        </div>
-        <NumField label="Outer width" value={w} unit={unit} min={0.1} max={2000} onCommit={(v) => commitSide('w', v)} />
-        <NumField label="Outer height" value={h} unit={unit} min={0.1} max={2000} onCommit={(v) => commitSide('h', v)} />
-      </div>
-      <label className="check">
-        <input type="checkbox" role="switch" checked={!free} onChange={(e) => setFree(e.target.checked ? null : { w, h })} />
-        Keep the photo's proportions (type one side, the other follows)
-      </label>
+      {replacing ? (
+        <p className="note">The piece keeps its current size. A straight-on photo gives the best result.</p>
+      ) : (
+        <>
+          <div className="photo-fields">
+            <div className="field">
+              <label htmlFor="photo-name">Name</label>
+              <input id="photo-name" type="text" value={name} maxLength={60} onChange={(e) => setName(e.target.value)} />
+            </div>
+            <NumField label="Outer width" value={w ?? 0} blank={w === null} unit={unit} min={0.1} max={2000} onCommit={(v) => commitSide('w', v)} />
+            <NumField label="Outer height" value={h ?? 0} blank={h === null} unit={unit} min={0.1} max={2000} onCommit={(v) => commitSide('h', v)} />
+          </div>
+          {!sized && (
+            <p className="photo-need">
+              {free ? 'Enter the real width and height.' : 'Enter the real width or height; the other side follows the outline. A straight-on photo gives the best proportions.'}
+            </p>
+          )}
+          <label className="check">
+            <input type="checkbox" role="switch" checked={!free} onChange={(e) => setFree(e.target.checked ? null : { w, h })} />
+            Keep the photo's proportions (type one side, the other follows)
+          </label>
+        </>
+      )}
 
       <div className="photo-actions">
         <button type="button" onClick={() => dialogRef.current?.close()}>
           Cancel
         </button>
-        <button type="button" className="primary" disabled={!photo || !outline?.valid} onClick={add}>
-          Add piece
+        <button type="button" className="primary" disabled={!photo || !outline?.valid || !sized} onClick={add}>
+          {replacing ? 'Use this photo' : 'Add piece'}
         </button>
       </div>
     </dialog>

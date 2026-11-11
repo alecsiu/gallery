@@ -146,6 +146,11 @@ h3 { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacin
 }
 .photo-dialog::backdrop { background: rgba(38, 34, 29, 0.55); backdrop-filter: blur(2px); }
 .photo-dialog h2 { font-size: 19px; margin-bottom: 4px; }
+.photo-status { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 30px; }
+.photo-status .note { margin: 0; }
+.photo-status .note.found { color: #1d5a35; }
+.photo-status button { flex: none; }
+.photo-need { margin: 2px 0 0; font-size: 12px; line-height: 1.45; color: #8a5a00; }
 .photo-area { display: grid; place-items: center; margin: 14px 0 10px; padding: 14px; min-height: 120px; background: var(--bg); border-radius: 10px; }
 .photo-frame { position: relative; display: inline-block; line-height: 0; touch-action: none; user-select: none; }
 .photo-frame img { display: block; max-width: 100%; max-height: min(52vh, 520px); border-radius: 2px; }

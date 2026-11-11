@@ -12,18 +12,22 @@ interface Props {
   max?: number;
   readOnly?: boolean;
   title?: string;
+  /** Show the field empty until the user types: for a measurement that must be entered, not defaulted. */
+  blank?: boolean;
 }
 
 /** Text input for a length: accepts fractions (11 3/4), unit suffixes (cm, mm, "), and arrow-key stepping. */
-export function NumField({ label, value, unit, onCommit, min = 0, max = 100000, readOnly = false, title }: Props) {
+export function NumField({ label, value, unit, onCommit, min = 0, max = 100000, readOnly = false, title, blank = false }: Props) {
   const id = useId();
-  const [text, setText] = useState(() => formatInput(value, unit));
+  const shown = () => (blank ? '' : formatInput(value, unit));
+  const [text, setText] = useState(shown);
   const [invalid, setInvalid] = useState(false);
   const focused = useRef(false);
 
   useEffect(() => {
-    if (!focused.current) setText(formatInput(value, unit));
-  }, [value, unit]);
+    if (!focused.current) setText(shown());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value, unit, blank]);
 
   const apply = (inches: number | null) => {
     if (inches === null || inches < min - 1e-9 || inches > max + 1e-9) {
@@ -31,7 +35,7 @@ export function NumField({ label, value, unit, onCommit, min = 0, max = 100000, 
       return false;
     }
     setInvalid(false);
-    if (Math.abs(inches - value) > 1e-9) onCommit(inches);
+    if (blank || Math.abs(inches - value) > 1e-9) onCommit(inches);
     return true;
   };
 
@@ -56,6 +60,7 @@ export function NumField({ label, value, unit, onCommit, min = 0, max = 100000, 
         value={text}
         readOnly={readOnly}
         title={title}
+        placeholder={blank ? '?' : undefined}
         aria-invalid={invalid || undefined}
         className={invalid ? 'invalid' : undefined}
         onFocus={(e) => {
@@ -67,7 +72,7 @@ export function NumField({ label, value, unit, onCommit, min = 0, max = 100000, 
           focused.current = false;
           if (readOnly) return;
           if (!apply(parseLength(text, unit))) {
-            setText(formatInput(value, unit));
+            setText(shown());
             setInvalid(false);
           } else {
             setText(formatInput(parseLength(text, unit) ?? value, unit));
@@ -77,7 +82,7 @@ export function NumField({ label, value, unit, onCommit, min = 0, max = 100000, 
           if (readOnly) return;
           if (e.key === 'Enter') e.currentTarget.blur();
           if (e.key === 'Escape') {
-            setText(formatInput(value, unit));
+            setText(shown());
             e.currentTarget.blur();
           }
           if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {

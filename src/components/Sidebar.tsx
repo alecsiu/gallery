@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ChangeEvent, Dispatch } from 'react';
-import { innerH, innerW, isOuterSized, outerH, outerW, withSizing } from '../geometry';
+import { findFreeSpot, innerH, innerW, isOuterSized, outerH, outerW, pieceRect, withSizing } from '../geometry';
 import { fileToThumbnail } from '../image';
 import { createPiece, uid } from '../model';
 import type { Action } from '../store';
@@ -27,10 +27,18 @@ export function Sidebar({ layout, unit, selectedId, dispatch, notify }: Props) {
   const patchPiece = (id: string, patch: Partial<Piece>, key?: string) =>
     edit((l) => ({ ...l, pieces: l.pieces.map((p) => (p.id === id ? { ...p, ...patch } : p)) }), key);
 
+  /** Puts a new piece in open wall space near the center; if the wall is full it stays where it was. */
+  const placed = (piece: Piece): Piece => {
+    const taken = pieces.map(pieceRect);
+    if (furniture.enabled) taken.push({ x: furniture.x, y: furniture.y, w: furniture.w, h: furniture.h });
+    const spot = findFreeSpot({ w: outerW(piece), h: outerH(piece) }, taken, wall, layout.gap);
+    return spot ? { ...piece, ...spot } : piece;
+  };
+
   const addPiece = () => {
     // New pieces are described the same way as the one being worked on.
     const like = selected ?? pieces[pieces.length - 1];
-    const piece = createPiece(pieces.length, wall, like && isOuterSized(like) ? 'outer' : 'spec');
+    const piece = placed(createPiece(pieces.length, wall, like && isOuterSized(like) ? 'outer' : 'spec'));
     edit((l) => ({ ...l, pieces: [...l.pieces, piece] }));
     dispatch({ type: 'select', id: piece.id });
   };
@@ -43,18 +51,29 @@ export function Sidebar({ layout, unit, selectedId, dispatch, notify }: Props) {
     }
   }, [selectedId]);
 
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  /** A photo being outlined: for a new piece, or (`forId`) as a new picture of an existing one. */
+  const [photoJob, setPhotoJob] = useState<{ file: File; forId?: string } | null>(null);
+  const photoTarget = photoJob?.forId ? pieces.find((p) => p.id === photoJob.forId) : undefined;
   const addPhotoPiece = (photo: PhotoPiece) => {
-    const piece: Piece = {
-      ...createPiece(pieces.length, wall, 'outer'),
-      ...photo,
-      photoFull: true,
-      x: Math.max(0, (wall.w - photo.outerW) / 2),
-      y: Math.max(0, (wall.h - photo.outerH) / 2),
-    };
-    edit((l) => ({ ...l, pieces: [...l.pieces, piece] }));
-    dispatch({ type: 'select', id: piece.id });
-    setPhotoFile(null);
+    if (photoJob?.forId) {
+      patchPiece(photoJob.forId, { image: photo.image, photoFull: true });
+    } else {
+      const piece = placed({
+        ...createPiece(pieces.length, wall, 'outer'),
+        ...photo,
+        photoFull: true,
+        x: Math.max(0, (wall.w - photo.outerW) / 2),
+        y: Math.max(0, (wall.h - photo.outerH) / 2),
+      });
+      edit((l) => ({ ...l, pieces: [...l.pieces, piece] }));
+      dispatch({ type: 'select', id: piece.id });
+    }
+    setPhotoJob(null);
+  };
+  const pickPhoto = (e: ChangeEvent<HTMLInputElement>, forId?: string) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (file) setPhotoJob({ file, forId });
   };
 
   const duplicate = (p: Piece) => {
@@ -131,29 +150,21 @@ export function Sidebar({ layout, unit, selectedId, dispatch, notify }: Props) {
           <div className="btn-row">
             <label className="button" title="Take or choose a photo of a piece, outline it, and add it to scale">
               From photo
-              <input
-                type="file"
-                accept="image/*"
-                hidden
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  e.target.value = '';
-                  if (file) setPhotoFile(file);
-                }}
-              />
+              <input type="file" accept="image/*" hidden onChange={(e) => pickPhoto(e)} />
             </label>
             <button type="button" className="primary" onClick={addPiece}>
               + Add piece
             </button>
           </div>
         </div>
-        {photoFile && (
+        {photoJob && (!photoJob.forId || photoTarget) && (
           <PhotoDialog
-            file={photoFile}
+            file={photoJob.file}
             unit={unit}
-            defaultName={photoFile.name.replace(/\.[^.]+$/, '').slice(0, 60) || `Art ${pieces.length + 1}`}
+            defaultName={photoJob.file.name.replace(/\.[^.]+$/, '').slice(0, 60) || `Art ${pieces.length + 1}`}
+            replacing={photoTarget && { name: photoTarget.name }}
             onAdd={addPhotoPiece}
-            onClose={() => setPhotoFile(null)}
+            onClose={() => setPhotoJob(null)}
           />
         )}
         {pieces.length === 0 && <p className="note">Add the art you want to hang. Set its size, then drag it into place.</p>}
@@ -271,8 +282,12 @@ export function Sidebar({ layout, unit, selectedId, dispatch, notify }: Props) {
           <h3>Picture</h3>
           {selected.photoFull && <p className="note">This photo shows the whole piece, frame included, so it covers the piece edge to edge.</p>}
           <div className="btn-row">
-            <label className="button">
-              {selected.image ? 'Replace image' : 'Add image'}
+            <label className="button" title="Take or choose a photo of the whole piece and outline it. The piece keeps its size.">
+              {selected.photoFull ? 'Retake photo' : 'Photo of whole piece'}
+              <input type="file" accept="image/*" hidden onChange={(e) => pickPhoto(e, selected.id)} />
+            </label>
+            <label className="button" title="A picture of just the artwork, shown inside the mat and frame">
+              {selected.image && !selected.photoFull ? 'Replace art image' : 'Art image only'}
               <input type="file" accept="image/*" hidden onChange={(e) => onImage(e, selected.id)} />
             </label>
             {selected.image && (

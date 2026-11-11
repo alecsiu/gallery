@@ -238,17 +238,36 @@ export function WallSvg({
               pointerEvents="none"
             />
             {isBad && <rect x={p.x} y={p.y} width={ow} height={oh} fill={COLORS.invalid} fillOpacity={0.18} pointerEvents="none" />}
-            {showLabel && (
-              <g pointerEvents="none" textAnchor="middle" fill={COLORS.text} stroke="#fff" strokeWidth={3 / s} paintOrder="stroke" strokeLinejoin="round">
-                <text x={p.x + ow / 2} y={p.y + oh / 2 - (oh * s > 46 ? 1 / s : -4 / s)} fontSize={12 / s} fontWeight={600}>
-                  {name}
-                </text>
-                {oh * s > 46 && (
-                  <text x={p.x + ow / 2} y={p.y + oh / 2 + 12 / s} fontSize={10 / s}>
-                    {formatLabel(ow, unit)} × {formatLabel(oh, unit)}
+            {showLabel && p.image && p.photoFull ? (
+              // A photo of the piece speaks for itself: just a small name along the bottom, not a label across it.
+              <text
+                x={p.x + ow / 2}
+                y={p.y + oh - 5 / s}
+                fontSize={10 / s}
+                fontWeight={600}
+                textAnchor="middle"
+                fill={COLORS.text}
+                stroke="#fff"
+                strokeWidth={3 / s}
+                paintOrder="stroke"
+                strokeLinejoin="round"
+                pointerEvents="none"
+              >
+                {name}
+              </text>
+            ) : (
+              showLabel && (
+                <g pointerEvents="none" textAnchor="middle" fill={COLORS.text} stroke="#fff" strokeWidth={3 / s} paintOrder="stroke" strokeLinejoin="round">
+                  <text x={p.x + ow / 2} y={p.y + oh / 2 - (oh * s > 46 ? 1 / s : -4 / s)} fontSize={12 / s} fontWeight={600}>
+                    {name}
                   </text>
-                )}
-              </g>
+                  {oh * s > 46 && (
+                    <text x={p.x + ow / 2} y={p.y + oh / 2 + 12 / s} fontSize={10 / s}>
+                      {formatLabel(ow, unit)} × {formatLabel(oh, unit)}
+                    </text>
+                  )}
+                </g>
+              )
             )}
           </g>
         );

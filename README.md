@@ -21,8 +21,9 @@ works from the `/<repo>/` subpath.
 - **Art, mat and frame sizes.** Enter the art size, the mat (left/right and top/bottom separately) and the frame
   moulding width. The inner (opening) and outer sizes are calculated and shown read-only. Or switch a piece to
   **Outer size** and just enter its overall width and height (canvases, mirrors, anything already framed).
-- **Add from a photo.** Take or pick a photo of a piece, drag four corners onto its outer edges, and type one real
-  measurement; the other follows the outline's proportions. The piece is straightened and drawn on the wall as it
+- **Add from a photo.** Take or pick a photo of a piece. The app looks for the piece against the wall behind it and
+  proposes its outline (drag any corner to correct it, or outline it yourself if nothing is found), then you type one
+  real measurement; the other follows the outline's proportions. An existing piece can be given a new photo too. The piece is straightened and drawn on the wall as it
   really looks. Everything happens in the browser.
 - **Units.** Inches or cm, switchable at any time. Inputs accept `11.5`, `11 3/4`, `8' 4"`, `5 cm`, `50mm`. Everything is
   stored in inches.

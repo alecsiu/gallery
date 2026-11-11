@@ -1,3 +1,4 @@
+import { detectQuad } from './detect';
 import { isConvexQuad, orderQuad, quadSize, warpQuad } from './warp';
 import type { Point, Quad } from './warp';
 
@@ -84,4 +85,22 @@ export function straightenPhoto(img: HTMLImageElement, corners: readonly Point[]
   imageData.data.set(warped.data);
   outCtx.putImageData(imageData, 0, 0);
   return outCanvas.toDataURL('image/jpeg', 0.85);
+}
+
+/** Looks for the piece in a photo. Returns corners as fractions of the photo, or null when unsure. */
+export function detectPiece(img: HTMLImageElement, maxSide = 256): Quad | null {
+  const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+  canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  if (!ctx) return null;
+  try {
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return detectQuad(ctx.getImageData(0, 0, canvas.width, canvas.height));
+  } catch {
+    return null;
+  }
 }

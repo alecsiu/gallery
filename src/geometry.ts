@@ -220,3 +220,37 @@ export function snapRect(
   const sy = snapAxis(afterX, 'y', others, aligns, wall, gap, threshold);
   return { x: afterX.x, y: moving.y + sy.d, guides: [...sx.guides, ...sy.guides] };
 }
+
+/**
+ * An empty place for a new w × h piece: the spot nearest the wall's center that keeps `gap` clear of everything in
+ * `taken`. Null when the wall has no such spot.
+ */
+export function findFreeSpot(size: { w: number; h: number }, taken: readonly Rect[], wall: Wall, gap: number): { x: number; y: number } | null {
+  const maxX = wall.w - size.w;
+  const maxY = wall.h - size.h;
+  if (maxX < 0 || maxY < 0) return null;
+  const step = Math.max(1, Math.max(wall.w, wall.h) / 150);
+  const clear = (x: number, y: number) =>
+    taken.every(
+      (t) => overlapLen(x - gap, x + size.w + gap, t.x, rectRight(t)) <= EPS || overlapLen(y - gap, y + size.h + gap, t.y, rectBottom(t)) <= EPS,
+    );
+  let best: { x: number; y: number } | null = null;
+  let bestCost = Infinity;
+  // Candidates include both far edges, so a piece that only just fits is still found.
+  const axis = (max: number) => {
+    const out: number[] = [];
+    for (let v = 0; v < max; v += step) out.push(v);
+    out.push(max);
+    return out;
+  };
+  for (const y of axis(maxY)) {
+    for (const x of axis(maxX)) {
+      const cost = Math.hypot(x - maxX / 2, y - maxY / 2);
+      if (cost < bestCost && clear(x, y)) {
+        bestCost = cost;
+        best = { x, y };
+      }
+    }
+  }
+  return best;
+}

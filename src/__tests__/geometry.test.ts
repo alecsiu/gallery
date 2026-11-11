@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { drawnParts, invalidPieceIds, neighborGaps, outerH, outerW, innerW, pieceRect, snapRect, wallGaps, withSizing } from '../geometry';
+import { drawnParts, findFreeSpot, invalidPieceIds, neighborGaps, outerH, outerW, innerW, pieceRect, snapRect, wallGaps, withSizing } from '../geometry';
 import type { Piece } from '../types';
 
 const piece = (id: string, x: number, y: number, artW = 8, artH = 10): Piece => ({
@@ -88,5 +88,24 @@ describe('sizing modes', () => {
     // Too small for the remembered mat and frame: fall back to bare art.
     const tiny = withSizing({ ...outer, outerW: 3, outerH: 3 }, 'spec');
     expect([tiny.artW, tiny.artH, tiny.matX, tiny.frame]).toEqual([3, 3, 0, 0]);
+  });
+});
+
+describe('findFreeSpot', () => {
+  const wall = { w: 100, h: 60 };
+  it('uses the center of an empty wall', () => {
+    expect(findFreeSpot({ w: 20, h: 10 }, [], wall, 2)).toEqual({ x: 40, y: 25 });
+  });
+  it('keeps the gap from existing pieces and stays near the center', () => {
+    const taken = [{ x: 35, y: 20, w: 30, h: 20 }];
+    const spot = findFreeSpot({ w: 20, h: 10 }, taken, wall, 2)!;
+    const apartX = spot.x + 20 + 2 <= 35 + 1e-6 || spot.x >= 65 + 2 - 1e-6;
+    const apartY = spot.y + 10 + 2 <= 20 + 1e-6 || spot.y >= 40 + 2 - 1e-6;
+    expect(apartX || apartY).toBe(true);
+    expect(Math.hypot(spot.x - 40, spot.y - 25)).toBeLessThan(25);
+  });
+  it('returns null when there is no room', () => {
+    expect(findFreeSpot({ w: 120, h: 10 }, [], wall, 2)).toBeNull();
+    expect(findFreeSpot({ w: 20, h: 10 }, [{ x: 0, y: 0, w: 100, h: 60 }], wall, 2)).toBeNull();
   });
 });
