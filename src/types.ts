@@ -26,6 +26,8 @@ export interface Piece {
   image?: string;
   /** The image is a straightened photo of the whole piece, frame included, so it is drawn edge to edge. */
   photoFull?: true;
+  /** Set aside: kept in the list with its size and position, but not on the wall or in suggested layouts. */
+  hidden?: true;
   x: number;
   y: number;
 }

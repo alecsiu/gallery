@@ -131,6 +131,9 @@ export function wallGaps(id: string, r: Rect, wall: Wall): GapLine[] {
 }
 
 /** Pieces that overlap another piece or stick out of the wall. */
+/** The pieces that are on the wall: everything not set aside with the visibility toggle. */
+export const shownPieces = (pieces: readonly Piece[]): Piece[] => pieces.filter((p) => !p.hidden);
+
 export function invalidPieceIds(pieces: Piece[], wall: Wall): Set<string> {
   const bad = new Set<string>();
   const rects = pieces.map((p) => ({ id: p.id, rect: pieceRect(p) }));

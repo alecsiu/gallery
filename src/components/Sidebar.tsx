@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ChangeEvent, Dispatch } from 'react';
-import { findFreeSpot, innerH, innerW, isOuterSized, outerH, outerW, pieceRect, withSizing } from '../geometry';
+import { findFreeSpot, innerH, innerW, isOuterSized, outerH, outerW, pieceRect, shownPieces, withSizing } from '../geometry';
 import { fileToThumbnail } from '../image';
 import { createPiece, uid } from '../model';
 import type { Action } from '../store';
@@ -30,7 +30,7 @@ export function Sidebar({ layout, unit, selectedId, dispatch, notify }: Props) {
 
   /** Puts a new piece in open wall space near the center; if the wall is full it stays where it was. */
   const placed = (piece: Piece): Piece => {
-    const taken = pieces.map(pieceRect);
+    const taken = shownPieces(pieces).map(pieceRect);
     if (furniture.enabled) taken.push({ x: furniture.x, y: furniture.y, w: furniture.w, h: furniture.h });
     const spot = findFreeSpot({ w: outerW(piece), h: outerH(piece) }, taken, wall, layout.gap);
     return spot ? { ...piece, ...spot } : piece;
@@ -170,7 +170,13 @@ export function Sidebar({ layout, unit, selectedId, dispatch, notify }: Props) {
         {pieces.length === 0 && <p className="note">Add the art you want to hang. Set its size, then drag it into place.</p>}
         <ul className="pieces">
           {pieces.map((p) => (
-            <li key={p.id}>
+            <li key={p.id} className={p.hidden ? 'piece-row off' : 'piece-row'}>
+              <IconButton
+                icon={p.hidden ? 'eyeOff' : 'eye'}
+                label={p.hidden ? `Show ${p.name} on the wall` : `Hide ${p.name} from the wall and suggested layouts`}
+                className="quiet"
+                onClick={() => patchPiece(p.id, { hidden: p.hidden ? undefined : true })}
+              />
               <button
                 type="button"
                 className={p.id === selectedId ? 'piece-btn active' : 'piece-btn'}

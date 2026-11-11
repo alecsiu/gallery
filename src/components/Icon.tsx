@@ -58,6 +58,13 @@ const GLYPHS = {
     </>
   ),
   rename: <path d="m4 20 1-4L16 5l3 3L8 19z" />,
+  eye: (
+    <>
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" />
+      <circle cx="12" cy="12" r="3" />
+    </>
+  ),
+  eyeOff: <path d="M4 4l16 16M9.9 5.3A9.8 9.8 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3 3.9M6.5 6.6C3.600 8.500 2 12 2 12s3.5 7 10 7c1.700 0 3.2-.5 4.5-1.200M10 10a3 3 0 0 0 4 4" />,
   check: <path d="m5 12 5 5 9-10" />,
   close: <path d="m6 6 12 12M18 6 6 18" />,
 } satisfies Record<string, ReactNode>;

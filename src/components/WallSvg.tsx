@@ -1,6 +1,6 @@
 import { useId } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
-import { drawnParts, invalidPieceIds, neighborGaps, outerH, outerW, pieceRect, wallGaps } from '../geometry';
+import { drawnParts, invalidPieceIds, neighborGaps, outerH, outerW, pieceRect, shownPieces, wallGaps } from '../geometry';
 import type { GapLine, Guide } from '../geometry';
 import { formatLabel } from '../units';
 import type { Layout, Piece, Unit } from '../types';
@@ -105,7 +105,8 @@ export function WallSvg({
   interactive = false,
   handlers = {},
 }: Props) {
-  const { wall, furniture, pieces } = layout;
+  const { wall, furniture } = layout;
+  const pieces = shownPieces(layout.pieces);
   const m = worldMargin(wall);
   const bad = invalidPieceIds(pieces, wall);
   const cursor = (c: string) => (interactive ? c : undefined);

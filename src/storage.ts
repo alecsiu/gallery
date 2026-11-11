@@ -49,6 +49,7 @@ function sanitizePiece(raw: unknown, i: number, seen: Set<string>): Piece {
     piece.image = raw.image;
     if (raw.photoFull === true) piece.photoFull = true;
   }
+  if (raw.hidden === true) piece.hidden = true;
   return piece;
 }
 

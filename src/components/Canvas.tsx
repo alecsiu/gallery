@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Dispatch, PointerEvent as ReactPointerEvent } from 'react';
 import { pieceRect } from '../geometry';
 import type { Guide } from '../geometry';
-import { snapRect } from '../geometry';
+import { shownPieces, snapRect } from '../geometry';
 import type { Action } from '../store';
 import type { Layout, Piece, Rect, Unit } from '../types';
 import { IconButton } from './Icon';
@@ -56,7 +56,9 @@ export function Canvas({ layout, unit, selectedId, showDims, dispatch }: Props) 
     return () => ro.disconnect();
   }, []);
 
-  const { wall, furniture, pieces } = layout;
+  const { wall, furniture } = layout;
+  // Hidden pieces aren't on the wall, so nothing snaps to them.
+  const pieces = shownPieces(layout.pieces);
   const m = worldMargin(wall);
   const worldW = wall.w + 2 * m;
   const worldH = wall.h + 2 * m;

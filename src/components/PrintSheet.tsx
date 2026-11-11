@@ -1,4 +1,4 @@
-import { isOuterSized, outerH, outerW } from '../geometry';
+import { isOuterSized, outerH, outerW, shownPieces } from '../geometry';
 import { formatLabel } from '../units';
 import type { Layout, Unit } from '../types';
 import { WallSvg } from './WallSvg';
@@ -25,7 +25,7 @@ export function PrintSheet({ layout, unit }: { layout: Layout; unit: Unit }) {
           </tr>
         </thead>
         <tbody>
-          {layout.pieces.map((p) => (
+          {shownPieces(layout.pieces).map((p) => (
             <tr key={p.id}>
               <td>{p.name}</td>
               <td>{isOuterSized(p) ? '—' : `${formatLabel(p.artW, unit)} × ${formatLabel(p.artH, unit)}`}</td>

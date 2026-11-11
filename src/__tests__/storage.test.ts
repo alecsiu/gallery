@@ -19,6 +19,14 @@ describe('JSON files', () => {
     expect(back.id).not.toBe(layout.id);
     expect({ ...back, id: layout.id }).toEqual(layout);
   });
+  it('keeps a piece hidden, and ignores anything but a true flag', () => {
+    const layout = createSampleLayout();
+    layout.pieces[1] = { ...layout.pieces[1], hidden: true };
+    expect(parseLayoutFile(serializeLayout(layout)).pieces.map((p) => p.hidden)).toEqual([undefined, true, undefined, undefined, undefined]);
+    const doc = JSON.parse(serializeLayout(layout));
+    doc.layout.pieces[1].hidden = 'yes';
+    expect(parseLayoutFile(JSON.stringify(doc)).pieces[1].hidden).toBeUndefined();
+  });
   it('round-trips outer-sized pieces and validates their size', () => {
     const layout = createSampleLayout();
     layout.pieces[0] = { ...withSizing(layout.pieces[0], 'outer'), outerW: 40 };

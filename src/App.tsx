@@ -6,7 +6,7 @@ import { Sidebar } from './components/Sidebar';
 import { Suggestions } from './components/Suggestions';
 import { Toolbar } from './components/Toolbar';
 import { exportJson, exportPng } from './export';
-import { outerH, outerW } from './geometry';
+import { outerH, outerW, shownPieces } from './geometry';
 import { currentLayout, initState, reducer } from './store';
 import { DEFAULT_PREFS, loadPrefs, parseLayoutFile, savePrefs, saveState } from './storage';
 import type { Prefs } from './storage';
@@ -75,8 +75,10 @@ export default function App() {
   }, [layout.name]);
 
   // Suggestions depend on piece sizes, not where the pieces currently sit.
+  // Hidden pieces are left out: suggestions arrange only what is on the wall, and applying one leaves them be.
+  const arranged = shownPieces(layout.pieces);
   const sizeKey = JSON.stringify([
-    layout.pieces.map((p) => [p.id, outerW(p), outerH(p)]),
+    arranged.map((p) => [p.id, outerW(p), outerH(p)]),
     layout.wall,
     layout.furniture.enabled ? layout.furniture : null,
     layout.gap,
@@ -88,7 +90,7 @@ export default function App() {
       !showSuggestions
         ? []
         : generateSuggestions(
-            layout.pieces.map((p) => ({ id: p.id, w: outerW(p), h: outerH(p) })),
+            arranged.map((p) => ({ id: p.id, w: outerW(p), h: outerH(p) })),
             layout.wall,
             layout.furniture,
             layout.gap,

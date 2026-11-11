@@ -1,5 +1,6 @@
 import type { Dock, Layout, Unit } from '../types';
 import type { Suggestion } from '../suggest';
+import { shownPieces } from '../geometry';
 import { IconButton } from './Icon';
 import { WallSvg, worldMargin } from './WallSvg';
 
@@ -23,13 +24,14 @@ const DOCKS: { dock: Dock; label: string; bar: { x: number; y: number; width: nu
 
 export function Suggestions({ layout, unit, suggestions, dock, onDock, onClose, onApply, onShuffle }: Props) {
   const m = worldMargin(layout.wall);
+  const count = shownPieces(layout.pieces).length;
   const scale = THUMB_W[dock] / (layout.wall.w + 2 * m);
   return (
     <section className="suggestions" aria-label="Suggested layouts">
       <div className="section-head">
         <h2>Suggested layouts</h2>
         <div className="btn-row">
-          <IconButton icon="shuffle" label="Shuffle: try other arrangements" onClick={onShuffle} disabled={layout.pieces.length < 3} />
+          <IconButton icon="shuffle" label="Shuffle: try other arrangements" onClick={onShuffle} disabled={count < 3} />
           <div className="segmented" role="group" aria-label="Panel position">
             {DOCKS.map((d) => (
               <button
@@ -51,8 +53,8 @@ export function Suggestions({ layout, unit, suggestions, dock, onDock, onClose, 
           <IconButton icon="close" label="Hide suggested layouts" onClick={onClose} />
         </div>
       </div>
-      {layout.pieces.length === 0 ? (
-        <p className="note">Add some pieces to get layout suggestions.</p>
+      {count === 0 ? (
+        <p className="note">{layout.pieces.length ? 'Every piece is hidden. Show some to get layout suggestions.' : 'Add some pieces to get layout suggestions.'}</p>
       ) : suggestions.length === 0 ? (
         <p className="note">These pieces don't fit in the wall with room to spare. Make the wall larger or the gap smaller.</p>
       ) : (
